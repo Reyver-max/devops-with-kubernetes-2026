@@ -1,4 +1,4 @@
-# Exercise 1.01
+# Exercise 1.1
 
 Application source code:
 
