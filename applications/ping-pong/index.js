@@ -1,13 +1,26 @@
 const express = require("express");
+const fs = require("fs");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const filePath = "/usr/src/app/files/pingpong.txt";
 
-let counter = 0;
+const getCounter = () => {
+  try {
+    return Number(fs.readFileSync(filePath, "utf8")) || 0;
+  } catch {
+    return 0;
+  }
+};
+
+const setCounter = (value) => {
+  fs.writeFileSync(filePath, String(value));
+};
 
 app.get("/pingpong", (req, res) => {
+  const counter = getCounter();
   res.send(`pong ${counter}`);
-  counter++;
+  setCounter(counter + 1);
 });
 
 app.listen(PORT, () => {

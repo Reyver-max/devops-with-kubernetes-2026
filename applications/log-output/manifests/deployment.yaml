@@ -19,18 +19,19 @@ spec:
     spec:
       volumes:
         - name: shared-log
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: shared-log-claim
 
       containers:
         - name: log-output-writer
-          image: log-output-writer:1.10
+          image: log-output-writer:1.11
           imagePullPolicy: IfNotPresent
           volumeMounts:
             - name: shared-log
               mountPath: /usr/src/app/files
 
         - name: log-output-reader
-          image: log-output-reader:1.10
+          image: log-output-reader:1.11
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000

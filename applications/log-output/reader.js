@@ -2,17 +2,23 @@ const http = require("http");
 const fs = require("fs");
 
 const PORT = process.env.PORT || 3000;
-const filePath = "/usr/src/app/files/output.txt";
+const outputPath = "/usr/src/app/files/output.txt";
+const pingpongPath = "/usr/src/app/files/pingpong.txt";
 
 const server = http.createServer((req, res) => {
-  let content = "No content yet";
+  let output = "No log output yet";
+  let pingpong = "0";
 
-  if (fs.existsSync(filePath)) {
-    content = fs.readFileSync(filePath, "utf8");
+  if (fs.existsSync(outputPath)) {
+    output = fs.readFileSync(outputPath, "utf8");
+  }
+
+  if (fs.existsSync(pingpongPath)) {
+    pingpong = fs.readFileSync(pingpongPath, "utf8");
   }
 
   res.writeHead(200, { "Content-Type": "text/plain" });
-  res.end(content);
+  res.end(`${output}\nPing / Pongs: ${pingpong}`);
 });
 
 server.listen(PORT, () => {
