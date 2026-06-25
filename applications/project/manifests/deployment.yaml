@@ -12,10 +12,19 @@ spec:
       labels:
         app: todo-app
     spec:
+      volumes:
+        - name: project-storage
+          persistentVolumeClaim:
+            claimName: shared-log-claim
       containers:
         - name: todo-app
-          image: todo-app:1.5
+          image: todo-app:1.12
           imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
           env:
             - name: PORT
               value: "3000"
+          volumeMounts:
+            - name: project-storage
+              mountPath: /usr/src/app/files
