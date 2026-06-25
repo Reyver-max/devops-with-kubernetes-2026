@@ -47,10 +47,74 @@ app.get("/", async (req, res) => {
 
     res.send(`
       <html>
-        <body style="font-family: sans-serif; text-align: center;">
+        <head>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              text-align: center;
+              margin: 40px;
+            }
+
+            img {
+              max-width: 400px;
+              border-radius: 8px;
+              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            }
+
+            form {
+              margin-top: 32px;
+            }
+
+            input {
+              width: 360px;
+              padding: 12px;
+              font-size: 16px;
+            }
+
+            button {
+              padding: 12px 20px;
+              font-size: 16px;
+              margin-left: 8px;
+            }
+
+            ul {
+              list-style: none;
+              padding: 0;
+              max-width: 600px;
+              margin: 24px auto;
+              text-align: left;
+            }
+
+            li {
+              background: #f4f4f4;
+              padding: 14px;
+              margin-bottom: 10px;
+              border-left: 4px solid #4caf50;
+            }
+          </style>
+        </head>
+
+        <body>
           <h1>Todo App</h1>
-          <img src="/image" style="max-width: 600px; border-radius: 8px;" />
-          <p>DevOps with Kubernetes 2026</p>
+
+          <img src="/image" />
+
+          <form>
+            <input
+              type="text"
+              maxlength="140"
+              placeholder="Enter a new todo (max 140 characters)"
+            />
+            <button type="button">Send</button>
+          </form>
+
+          <h2>Todos</h2>
+
+          <ul>
+            <li>Learn Kubernetes basics</li>
+            <li>Deploy application to cluster</li>
+            <li>Configure persistent volumes</li>
+          </ul>
         </body>
       </html>
     `);
