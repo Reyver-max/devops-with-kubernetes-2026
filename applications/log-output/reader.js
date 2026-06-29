@@ -3,22 +3,28 @@ const fs = require("fs");
 
 const PORT = process.env.PORT || 3000;
 const outputPath = "/usr/src/app/files/output.txt";
-const pingpongPath = "/usr/src/app/files/pingpong.txt";
 
-const server = http.createServer((req, res) => {
+const getPingCount = async () => {
+  try {
+    const response = await fetch("http://ping-pong-svc:2345/pings");
+    return await response.text();
+  } catch (error) {
+    console.error("Failed to fetch ping count:", error);
+    return "0";
+  }
+};
+
+const server = http.createServer(async (req, res) => {
   let output = "No log output yet";
-  let pingpong = "0";
 
   if (fs.existsSync(outputPath)) {
     output = fs.readFileSync(outputPath, "utf8");
   }
 
-  if (fs.existsSync(pingpongPath)) {
-    pingpong = fs.readFileSync(pingpongPath, "utf8");
-  }
+  const pingCount = await getPingCount();
 
   res.writeHead(200, { "Content-Type": "text/plain" });
-  res.end(`${output}\nPing / Pongs: ${pingpong}`);
+  res.end(`${output}\nPing / Pongs: ${pingCount}`);
 });
 
 server.listen(PORT, () => {

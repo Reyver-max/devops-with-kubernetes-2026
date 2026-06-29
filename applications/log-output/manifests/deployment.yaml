@@ -31,7 +31,7 @@ spec:
               mountPath: /usr/src/app/files
 
         - name: log-output-reader
-          image: log-output-reader:1.11
+          image: log-output-reader:2.1
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000

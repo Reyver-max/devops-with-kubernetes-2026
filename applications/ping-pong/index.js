@@ -23,6 +23,11 @@ app.get("/pingpong", (req, res) => {
   setCounter(counter + 1);
 });
 
+app.get("/pings", (req, res) => {
+  const counter = getCounter();
+  res.send(String(counter));
+});
+
 app.listen(PORT, () => {
   console.log(`Ping-pong app started in port ${PORT}`);
 });
