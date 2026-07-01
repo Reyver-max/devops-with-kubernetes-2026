@@ -18,7 +18,7 @@ spec:
             claimName: shared-log-claim
       containers:
         - name: todo-app
-          image: todo-app:1.13
+          image: todo-app:2.2
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000

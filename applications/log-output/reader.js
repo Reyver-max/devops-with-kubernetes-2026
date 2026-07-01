@@ -1,8 +1,8 @@
 const http = require("http");
-const fs = require("fs");
+const crypto = require("crypto");
 
 const PORT = process.env.PORT || 3000;
-const outputPath = "/usr/src/app/files/output.txt";
+const randomString = crypto.randomUUID();
 
 const getPingCount = async () => {
   try {
@@ -15,16 +15,10 @@ const getPingCount = async () => {
 };
 
 const server = http.createServer(async (req, res) => {
-  let output = "No log output yet";
-
-  if (fs.existsSync(outputPath)) {
-    output = fs.readFileSync(outputPath, "utf8");
-  }
-
   const pingCount = await getPingCount();
 
   res.writeHead(200, { "Content-Type": "text/plain" });
-  res.end(`${output}\nPing / Pongs: ${pingCount}`);
+  res.end(`${new Date().toISOString()}: ${randomString}\nPing / Pongs: ${pingCount}`);
 });
 
 server.listen(PORT, () => {

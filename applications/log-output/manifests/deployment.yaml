@@ -1,43 +1,24 @@
 apiVersion: apps/v1
 kind: Deployment
-
 metadata:
+  namespace: exercises
   name: log-output
-
 spec:
   replicas: 1
-
   selector:
     matchLabels:
       app: log-output
-
   template:
     metadata:
       labels:
         app: log-output
-
     spec:
-      volumes:
-        - name: shared-log
-          persistentVolumeClaim:
-            claimName: shared-log-claim
-
       containers:
-        - name: log-output-writer
-          image: log-output-writer:1.11
-          imagePullPolicy: IfNotPresent
-          volumeMounts:
-            - name: shared-log
-              mountPath: /usr/src/app/files
-
-        - name: log-output-reader
-          image: log-output-reader:2.1
+        - name: log-output
+          image: log-output-reader:2.3
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
           env:
             - name: PORT
               value: "3000"
-          volumeMounts:
-            - name: shared-log
-              mountPath: /usr/src/app/files
