@@ -15,10 +15,23 @@ spec:
     spec:
       containers:
         - name: log-output
-          image: log-output-reader:2.3
+          image: log-output-reader:2.5
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
           env:
             - name: PORT
               value: "3000"
+            - name: MESSAGE
+              valueFrom:
+                configMapKeyRef:
+                  name: log-output-config
+                  key: MESSAGE
+          volumeMounts:
+            - name: config-volume
+              mountPath: /usr/src/app/config
+              readOnly: true
+      volumes:
+        - name: config-volume
+          configMap:
+            name: log-output-config
