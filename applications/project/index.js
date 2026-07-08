@@ -3,14 +3,19 @@ const fs = require("fs");
 const path = require("path");
 
 const app = express();
+
 const PORT = process.env.PORT || 3000;
+const IMAGE_URL = process.env.IMAGE_URL || "https://picsum.photos/1200";
+const TODO_BACKEND_URL =
+  process.env.TODO_BACKEND_URL || "http://todo-backend-svc:2345";
 
 const filesDir = "/usr/src/app/files";
 const imagePath = path.join(filesDir, "image.jpg");
 const timestampPath = path.join(filesDir, "image-timestamp.txt");
 
 const TEN_MINUTES = 10 * 60 * 1000;
-const TODO_BACKEND_URL = "http://todo-backend-svc:2345";
+
+app.use(express.urlencoded({ extended: true }));
 
 const ensureFilesDir = () => {
   if (!fs.existsSync(filesDir)) {
@@ -34,7 +39,7 @@ const downloadImage = async () => {
     return;
   }
 
-  const response = await fetch("https://picsum.photos/1200");
+  const response = await fetch(IMAGE_URL);
   const arrayBuffer = await response.arrayBuffer();
 
   fs.writeFileSync(imagePath, Buffer.from(arrayBuffer));
@@ -45,8 +50,6 @@ const getTodos = async () => {
   const response = await fetch(`${TODO_BACKEND_URL}/todos`);
   return await response.json();
 };
-
-app.use(express.urlencoded({ extended: true }));
 
 app.get("/", async (req, res) => {
   try {
