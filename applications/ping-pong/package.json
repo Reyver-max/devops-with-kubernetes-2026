@@ -1,10 +1,12 @@
 {
   "name": "ping-pong",
   "version": "1.0.0",
+  "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "pg": "^8.12.0"
   }
 }
