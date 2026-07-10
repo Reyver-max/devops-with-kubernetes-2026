@@ -1,0 +1,58 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: wikipedia-todo
+  namespace: project
+spec:
+  # Every minute temporarily for testing.
+  schedule: "0 * * * *"
+
+  concurrencyPolicy: Forbid
+
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+
+      template:
+        spec:
+          restartPolicy: Never
+
+          containers:
+            - name: wikipedia-todo
+              image: curlimages/curl:8.12.1
+
+              env:
+                - name: TODO_BACKEND_URL
+                  value: "http://todo-backend-svc:2345"
+
+              command:
+                - /bin/sh
+                - -c
+
+              args:
+                - |
+                  set -eu
+
+                  ARTICLE_URL="$(curl \
+                    --silent \
+                    --location \
+                    --output /dev/null \
+                    --write-out '%{url_effective}' \
+                    https://en.wikipedia.org/wiki/Special:Random)"
+
+                  echo "Random article: ${ARTICLE_URL}"
+
+                  curl \
+                    --fail \
+                    --silent \
+                    --show-error \
+                    --request POST \
+                    "${TODO_BACKEND_URL}/todos" \
+                    --header "Content-Type: application/json" \
+                    --data "{\"content\":\"Read ${ARTICLE_URL}\"}"
+
+                  echo
+                  echo "Todo created successfully"
