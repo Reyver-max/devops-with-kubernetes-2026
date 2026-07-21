@@ -15,20 +15,28 @@ spec:
     spec:
       containers:
         - name: todo-backend
-          image: todo-backend:2.8
+          image: todo-backend:2.10
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
           env:
             - name: PORT
               value: "3000"
+
+            - name: MAX_TODO_LENGTH
+              value: "140"
+
             - name: POSTGRES_HOST
               value: todo-postgres-svc
+
             - name: POSTGRES_PORT
               value: "5432"
+
             - name: POSTGRES_USER
               value: postgres
+
             - name: POSTGRES_PASSWORD
               value: postgres
+
             - name: POSTGRES_DB
               value: todos

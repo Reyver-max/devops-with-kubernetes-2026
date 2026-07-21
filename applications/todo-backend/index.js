@@ -2,7 +2,9 @@ const express = require("express");
 const { Pool } = require("pg");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+
+const PORT = Number(process.env.PORT || 3000);
+const MAX_TODO_LENGTH = Number(process.env.MAX_TODO_LENGTH || 140);
 
 app.use(express.json());
 
@@ -22,52 +24,150 @@ const initializeDatabase = async () => {
     );
   `);
 
-  await pool.query(`
-    INSERT INTO todos (content)
-    SELECT 'Learn Kubernetes basics'
-    WHERE NOT EXISTS (SELECT 1 FROM todos);
-  `);
+  const initialTodos = [
+    "Learn Kubernetes basics",
+    "Deploy application to cluster",
+    "Configure persistent volumes",
+  ];
 
-  await pool.query(`
-    INSERT INTO todos (content)
-    SELECT 'Deploy application to cluster'
-    WHERE NOT EXISTS (SELECT 1 FROM todos WHERE content = 'Deploy application to cluster');
-  `);
-
-  await pool.query(`
-    INSERT INTO todos (content)
-    SELECT 'Configure persistent volumes'
-    WHERE NOT EXISTS (SELECT 1 FROM todos WHERE content = 'Configure persistent volumes');
-  `);
+  for (const content of initialTodos) {
+    await pool.query(
+      `
+        INSERT INTO todos (content)
+        SELECT $1
+        WHERE NOT EXISTS (
+          SELECT 1
+          FROM todos
+          WHERE content = $1
+        );
+      `,
+      [content]
+    );
+  }
 };
 
 app.get("/todos", async (req, res) => {
-  const result = await pool.query("SELECT id, content FROM todos ORDER BY id;");
-  res.json(result.rows);
+  try {
+    const result = await pool.query(
+      "SELECT id, content FROM todos ORDER BY id;"
+    );
+
+    return res.json(result.rows);
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        event: "todos_fetch_failed",
+        message: error.message,
+      })
+    );
+
+    return res.status(500).json({
+      error: "Failed to retrieve todos",
+    });
+  }
 });
 
 app.post("/todos", async (req, res) => {
-  const { content } = req.body;
+  const content =
+    typeof req.body.content === "string"
+      ? req.body.content.trim()
+      : "";
 
-  if (!content || content.length > 140) {
-    return res.status(400).json({ error: "Todo must be 1-140 characters" });
-  }
-
-  const result = await pool.query(
-    "INSERT INTO todos (content) VALUES ($1) RETURNING id, content;",
-    [content]
+  console.log(
+    JSON.stringify({
+      event: "todo_received",
+      method: req.method,
+      path: req.path,
+      content,
+      contentLength: content.length,
+    })
   );
 
-  res.status(201).json(result.rows[0]);
+  if (!content) {
+    console.warn(
+      JSON.stringify({
+        event: "todo_rejected",
+        reason: "empty_content",
+        contentLength: 0,
+      })
+    );
+
+    return res.status(400).json({
+      error: "Todo content is required",
+    });
+  }
+
+  if (content.length > MAX_TODO_LENGTH) {
+    console.warn(
+      JSON.stringify({
+        event: "todo_rejected",
+        reason: "content_too_long",
+        contentLength: content.length,
+        maximumLength: MAX_TODO_LENGTH,
+        content,
+      })
+    );
+
+    return res.status(400).json({
+      error: `Todo must be at most ${MAX_TODO_LENGTH} characters`,
+    });
+  }
+
+  try {
+    const result = await pool.query(
+      `
+        INSERT INTO todos (content)
+        VALUES ($1)
+        RETURNING id, content;
+      `,
+      [content]
+    );
+
+    const createdTodo = result.rows[0];
+
+    console.log(
+      JSON.stringify({
+        event: "todo_created",
+        todoId: createdTodo.id,
+        content: createdTodo.content,
+      })
+    );
+
+    return res.status(201).json(createdTodo);
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        event: "todo_create_failed",
+        message: error.message,
+        content,
+      })
+    );
+
+    return res.status(500).json({
+      error: "Failed to create todo",
+    });
+  }
 });
 
 initializeDatabase()
   .then(() => {
     app.listen(PORT, () => {
-      console.log(`Todo backend started in port ${PORT}`);
+      console.log(
+        JSON.stringify({
+          event: "server_started",
+          port: PORT,
+          maximumTodoLength: MAX_TODO_LENGTH,
+        })
+      );
     });
   })
   .catch((error) => {
-    console.error("Failed to initialize database:", error);
+    console.error(
+      JSON.stringify({
+        event: "database_initialization_failed",
+        message: error.message,
+      })
+    );
+
     process.exit(1);
   });
