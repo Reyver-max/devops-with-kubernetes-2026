@@ -47,16 +47,13 @@ app.get("/pingpong", async (req, res) => {
   }
 });
 
-app.get("/", (req, res) => {
-  res.status(200).send("Ping-pong service is healthy");
-});
-
-app.get("/pings", async (req, res) => {
+app.get("/", async (req, res) => {
   try {
     const counter = await getCounter();
-    res.send(String(counter));
+    await incrementCounter();
+    res.send(`pong ${counter}`);
   } catch (error) {
-    console.error("Error in /pings:", error);
+    console.error("Error in /:", error);
     res.status(500).send("Database error");
   }
 });
