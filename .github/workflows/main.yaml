@@ -11,12 +11,17 @@ permissions:
 
 env:
   PROJECT_ID: ${{ secrets.GKE_PROJECT }}
+
   GKE_CLUSTER: dwk-cluster
   GKE_ZONE: europe-north1-b
+
   REGISTRY: europe-north1-docker.pkg.dev
   REPOSITORY: dwk-images
+
   FRONTEND_IMAGE: todo-app
   BACKEND_IMAGE: todo-backend
+
+  BRANCH: ${{ github.ref_name }}
 
 jobs:
   build-publish-deploy:
@@ -36,75 +41,62 @@ jobs:
           workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.SERVICE_ACCOUNT }}
 
-      - name: Set up Google Cloud SDK
+      - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v3
         with:
           project_id: ${{ env.PROJECT_ID }}
-          install_components: gke-gcloud-auth-plugin
-
-      - name: Verify authentication
-        run: |
-          gcloud auth list
-          gcloud config get-value project
 
       - name: Configure Docker for Artifact Registry
         run: |
-          gcloud auth configure-docker "${REGISTRY}" --quiet
+          gcloud --quiet auth configure-docker "$REGISTRY"
+
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v3
+        with:
+          cluster_name: ${{ env.GKE_CLUSTER }}
+          project_id: ${{ env.PROJECT_ID }}
+          location: ${{ env.GKE_ZONE }}
+
+      - name: Form image names
+        run: |
+          echo "FRONTEND_IMAGE_TAG=${REGISTRY}/${PROJECT_ID}/${REPOSITORY}/${FRONTEND_IMAGE}:${BRANCH}-${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "BACKEND_IMAGE_TAG=${REGISTRY}/${PROJECT_ID}/${REPOSITORY}/${BACKEND_IMAGE}:${BRANCH}-${GITHUB_SHA}" >> "$GITHUB_ENV"
 
       - name: Build frontend image
         run: |
           docker build \
             --platform linux/amd64 \
-            -t "${REGISTRY}/${PROJECT_ID}/${REPOSITORY}/${FRONTEND_IMAGE}:${GITHUB_SHA}" \
+            --tag "$FRONTEND_IMAGE_TAG" \
             applications/project
-
-      - name: Push frontend image
-        run: |
-          docker push \
-            "${REGISTRY}/${PROJECT_ID}/${REPOSITORY}/${FRONTEND_IMAGE}:${GITHUB_SHA}"
 
       - name: Build backend image
         run: |
           docker build \
             --platform linux/amd64 \
-            -t "${REGISTRY}/${PROJECT_ID}/${REPOSITORY}/${BACKEND_IMAGE}:${GITHUB_SHA}" \
+            --tag "$BACKEND_IMAGE_TAG" \
             applications/todo-backend
 
-      - name: Push backend image
+      - name: Publish frontend image
         run: |
-          docker push \
-            "${REGISTRY}/${PROJECT_ID}/${REPOSITORY}/${BACKEND_IMAGE}:${GITHUB_SHA}"
+          docker push "$FRONTEND_IMAGE_TAG"
 
-      - name: Get GKE credentials
+      - name: Publish backend image
         run: |
-          gcloud container clusters get-credentials "${GKE_CLUSTER}" \
-            --zone "${GKE_ZONE}" \
-            --project "${PROJECT_ID}"
+          docker push "$BACKEND_IMAGE_TAG"
 
-      - name: Select deployment images
+      - name: Set up Kustomize
+        uses: imranismail/setup-kustomize@v3
+
+      - name: Deploy
         run: |
-          sed -i \
-            "s|newName: reyver/todo-app|newName: ${REGISTRY}/${PROJECT_ID}/${REPOSITORY}/${FRONTEND_IMAGE}|" \
-            kustomization.yaml
+          kustomize edit set image PROJECT/TODO_APP="$FRONTEND_IMAGE_TAG"
+          kustomize edit set image PROJECT/TODO_BACKEND="$BACKEND_IMAGE_TAG"
 
-          sed -i \
-            "s|newTag: 3.5-amd64|newTag: ${GITHUB_SHA}|" \
-            kustomization.yaml
+          echo "Generated Kubernetes manifests:"
+          kustomize build .
 
-          sed -i \
-            "s|newName: reyver/todo-backend|newName: ${REGISTRY}/${PROJECT_ID}/${REPOSITORY}/${BACKEND_IMAGE}|" \
-            kustomization.yaml
+          kustomize build . | kubectl apply -f -
 
-      - name: Preview Kubernetes resources
-        run: |
-          kubectl kustomize .
-
-      - name: Deploy to GKE
-        run: |
-          kubectl apply -k .
-
-      - name: Verify deployments
-        run: |
           kubectl rollout status deployment/todo-app \
             --namespace project \
             --timeout=180s
@@ -112,3 +104,6 @@ jobs:
           kubectl rollout status deployment/todo-backend \
             --namespace project \
             --timeout=180s
+
+          kubectl get pods -n project
+          kubectl get services -n project -o wide
