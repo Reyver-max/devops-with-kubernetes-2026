@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: ping-pong
-          image: reyver/ping-pong:3.1-amd64
+          image: reyver/ping-pong:3.2-amd64
           imagePullPolicy: Always
 
           ports:
