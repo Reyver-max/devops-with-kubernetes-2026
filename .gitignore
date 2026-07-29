@@ -1,1 +1,4 @@
 node_modules/
+
+# Google GitHub Actions credentials
+gha-creds-*.json
