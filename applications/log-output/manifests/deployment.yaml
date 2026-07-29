@@ -15,8 +15,8 @@ spec:
     spec:
       containers:
         - name: log-output
-          image: log-output-reader:2.5
-          imagePullPolicy: IfNotPresent
+          image: reyver/log-output:3.2-amd64
+          imagePullPolicy: Always
           ports:
             - containerPort: 3000
           env:
