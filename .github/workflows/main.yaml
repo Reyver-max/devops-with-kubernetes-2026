@@ -2,8 +2,6 @@ name: Release Todo application
 
 on:
   push:
-    branches:
-      - main
 
 permissions:
   contents: read
@@ -57,6 +55,14 @@ jobs:
           project_id: ${{ env.PROJECT_ID }}
           location: ${{ env.GKE_ZONE }}
 
+      - name: Select deployment namespace
+        run: |
+          if [ "$BRANCH" = "main" ]; then
+            echo "NAMESPACE=project" >> "$GITHUB_ENV"
+          else
+            echo "NAMESPACE=$BRANCH" >> "$GITHUB_ENV"
+          fi
+
       - name: Form image names
         run: |
           echo "FRONTEND_IMAGE_TAG=${REGISTRY}/${PROJECT_ID}/${REPOSITORY}/${FRONTEND_IMAGE}:${BRANCH}-${GITHUB_SHA}" >> "$GITHUB_ENV"
@@ -89,8 +95,23 @@ jobs:
 
       - name: Deploy
         run: |
-          kustomize edit set image PROJECT/TODO_APP="$FRONTEND_IMAGE_TAG"
-          kustomize edit set image PROJECT/TODO_BACKEND="$BACKEND_IMAGE_TAG"
+          kubectl create namespace "$NAMESPACE" \
+            --dry-run=client \
+            -o yaml | kubectl apply -f -
+
+          kubectl config set-context \
+            --current \
+            --namespace="$NAMESPACE"
+
+          kustomize edit set namespace "$NAMESPACE"
+
+          kustomize edit set image \
+            PROJECT/TODO_APP="$FRONTEND_IMAGE_TAG"
+
+          kustomize edit set image \
+            PROJECT/TODO_BACKEND="$BACKEND_IMAGE_TAG"
+
+          echo "Deploying branch '$BRANCH' into namespace '$NAMESPACE'"
 
           echo "Generated Kubernetes manifests:"
           kustomize build .
@@ -98,12 +119,16 @@ jobs:
           kustomize build . | kubectl apply -f -
 
           kubectl rollout status deployment/todo-app \
-            --namespace project \
+            --namespace "$NAMESPACE" \
             --timeout=180s
 
           kubectl rollout status deployment/todo-backend \
-            --namespace project \
+            --namespace "$NAMESPACE" \
             --timeout=180s
 
-          kubectl get pods -n project
-          kubectl get services -n project -o wide
+          kubectl get pods \
+            --namespace "$NAMESPACE"
+
+          kubectl get services \
+            --namespace "$NAMESPACE" \
+            -o wide
