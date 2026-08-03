@@ -3,7 +3,7 @@ name: Release Todo application
 on:
   push:
     branches:
-     - "**"
+      - "**"
 
 permissions:
   contents: read
@@ -29,8 +29,8 @@ jobs:
     name: Build, Publish and Deploy
     runs-on: ubuntu-latest
     environment: GKE_PROJECT
-    
-steps:
+
+    steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
