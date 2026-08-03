@@ -24,6 +24,13 @@ spec:
             - name: wikipedia-todo
               image: curlimages/curl:8.12.1
 
+              resources:
+                requests:
+                  cpu: "10m"
+                  memory: "16Mi"
+                limits:
+                  cpu: "100m"
+                  memory: "64Mi"
               env:
                 - name: TODO_BACKEND_URL
                   value: "http://todo-backend-svc:2345"

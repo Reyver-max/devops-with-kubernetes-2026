@@ -18,6 +18,15 @@ spec:
             - name: backup
               image: europe-north1-docker.pkg.dev/devops-course-503807/dwk-images/todo-backup:3.10-amd64
               imagePullPolicy: Always
+
+              resources:
+                requests:
+                  cpu: "50m"
+                  memory: "128Mi"
+                limits:
+                  cpu: "500m"
+                  memory: "512Mi"
+
               env:
                 - name: PGHOST
                   value: todo-postgres-svc
