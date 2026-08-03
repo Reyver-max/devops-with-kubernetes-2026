@@ -64,3 +64,16 @@ DIY PostgreSQL may initially be cheaper when a GKE cluster is already running, b
 For this course project, running PostgreSQL in GKE is useful because it teaches StatefulSets, PersistentVolumeClaims and Kubernetes storage.
 
 For a real production deployment, I would normally choose Cloud SQL unless there were strong requirements for complete PostgreSQL control, cloud portability or a specialized database configuration. The higher direct cost of Cloud SQL is often justified by reduced maintenance work, simpler backups and recovery, and easier high-availability configuration.
+
+
+## Exercise 3.12
+
+The application logs were collected through Google Cloud Logging.
+
+The logs can be found through:
+
+Kubernetes Engine → Workloads → todo-app → Logs
+
+The following screenshot shows the application logs collected by GKE.
+
+![Logs](images/logs.png)
