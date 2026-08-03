@@ -2,6 +2,8 @@ name: Release Todo application
 
 on:
   push:
+    branches:
+     - "**"
 
 permissions:
   contents: read
@@ -23,12 +25,12 @@ env:
 
 jobs:
   build-publish-deploy:
+    if: github.ref_type == 'branch'
     name: Build, Publish and Deploy
     runs-on: ubuntu-latest
-
     environment: GKE_PROJECT
-
-    steps:
+    
+steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
