@@ -3,7 +3,7 @@ kind: Kustomization
 
 resources:
   - manifests/persistentvolumeclaim.yaml
-
+  - applications/todo-backend/manifests/backup-cronjob.yaml
   - applications/project/manifests/configmap.yaml
   - applications/project/manifests/service.yaml
   - applications/project/manifests/deployment.yaml
