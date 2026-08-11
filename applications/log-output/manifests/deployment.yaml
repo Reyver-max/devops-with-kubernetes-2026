@@ -1,36 +1,60 @@
 apiVersion: apps/v1
 kind: Deployment
+
 metadata:
   namespace: exercises
   name: log-output
+
 spec:
   replicas: 1
+
   selector:
     matchLabels:
       app: log-output
+
   template:
     metadata:
       labels:
         app: log-output
+
     spec:
       containers:
         - name: log-output
-          image: reyver/log-output:3.2-amd64
+          image: reyver/log-output:4.1
           imagePullPolicy: Always
+
           ports:
             - containerPort: 3000
+
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 1
+
           env:
             - name: PORT
               value: "3000"
+
+            - name: PING_PONG_HOST
+              value: ping-pong-svc
+
+            - name: PING_PONG_PORT
+              value: "2345"
+
             - name: MESSAGE
               valueFrom:
                 configMapKeyRef:
                   name: log-output-config
                   key: MESSAGE
+
           volumeMounts:
             - name: config-volume
               mountPath: /usr/src/app/config
               readOnly: true
+
       volumes:
         - name: config-volume
           configMap:
