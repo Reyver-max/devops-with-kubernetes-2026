@@ -1,24 +1,46 @@
 apiVersion: apps/v1
 kind: Deployment
+
 metadata:
   namespace: project
   name: todo-backend
+
 spec:
   replicas: 1
+
   selector:
     matchLabels:
       app: todo-backend
+
   template:
     metadata:
       labels:
         app: todo-backend
+
     spec:
       containers:
         - name: todo-backend
           image: PROJECT/TODO_BACKEND
           imagePullPolicy: Always
+
           ports:
             - containerPort: 3000
+
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 1
+
+          livenessProbe:
+            httpGet:
+              path: /livez
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            failureThreshold: 3
 
           resources:
             requests:

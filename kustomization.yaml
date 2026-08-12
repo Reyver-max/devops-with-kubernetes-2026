@@ -17,8 +17,8 @@ resources:
 images:
   - name: PROJECT/TODO_APP
     newName: reyver/todo-app
-    newTag: 3.5-amd64
+    newTag: "4.2"
 
   - name: PROJECT/TODO_BACKEND
     newName: reyver/todo-backend
-    newTag: 3.5-amd64
+    newTag: "4.2"

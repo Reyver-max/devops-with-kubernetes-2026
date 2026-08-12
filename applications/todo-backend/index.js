@@ -46,6 +46,39 @@ const initializeDatabase = async () => {
   }
 };
 
+/*
+ * Readiness endpoint.
+ * The backend is ready only if PostgreSQL can answer a query.
+ */
+app.get("/healthz", async (req, res) => {
+  try {
+    await pool.query("SELECT 1;");
+    return res.status(200).json({ status: "ok" });
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        event: "health_check_failed",
+        message: error.message,
+      })
+    );
+
+    return res.status(500).json({
+      status: "unhealthy",
+    });
+  }
+});
+
+/*
+ * Liveness endpoint.
+ *
+ * This only verifies that the backend process itself is alive.
+ * A temporary database outage should not cause an endless
+ * backend restart loop.
+ */
+app.get("/livez", (req, res) => {
+  return res.status(200).json({ status: "alive" });
+});
+
 app.get("/todos", async (req, res) => {
   try {
     const result = await pool.query(
