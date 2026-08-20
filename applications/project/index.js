@@ -5,6 +5,7 @@ const path = require("path");
 const app = express();
 
 const PORT = process.env.PORT || 3000;
+
 const IMAGE_URL =
   process.env.IMAGE_URL || "https://picsum.photos/1200";
 
@@ -23,13 +24,7 @@ const TEN_MINUTES = 10 * 60 * 1000;
 
 /*
  * Exercise 4.2:
- *
- * Pressing the "break the app" button changes this to false.
- * The liveness probe then fails and Kubernetes restarts
- * the container.
- *
- * Since this variable exists only in memory, the new container
- * starts again with isHealthy = true.
+ * Used to intentionally break the frontend.
  */
 let isHealthy = true;
 
@@ -37,7 +32,9 @@ app.use(express.urlencoded({ extended: true }));
 
 const ensureFilesDir = () => {
   if (!fs.existsSync(filesDir)) {
-    fs.mkdirSync(filesDir, { recursive: true });
+    fs.mkdirSync(filesDir, {
+      recursive: true,
+    });
   }
 };
 
@@ -64,7 +61,15 @@ const downloadImage = async () => {
   }
 
   const response = await fetch(IMAGE_URL);
-  const arrayBuffer = await response.arrayBuffer();
+
+  if (!response.ok) {
+    throw new Error(
+      `Image service returned ${response.status}`
+    );
+  }
+
+  const arrayBuffer =
+    await response.arrayBuffer();
 
   fs.writeFileSync(
     imagePath,
@@ -92,12 +97,7 @@ const getTodos = async () => {
 };
 
 /*
- * Readiness probe.
- *
- * The frontend is ready only if:
- * 1. the frontend itself is healthy
- * 2. the backend is healthy
- * 3. by implication, the backend can reach PostgreSQL
+ * Readiness endpoint.
  */
 app.get("/healthz", async (req, res) => {
   if (!isHealthy) {
@@ -134,9 +134,6 @@ app.get("/healthz", async (req, res) => {
 
 /*
  * Liveness endpoint.
- *
- * Pressing the break button makes this return 500,
- * which causes Kubernetes to restart this container.
  */
 app.get("/livez", (req, res) => {
   if (!isHealthy) {
@@ -150,14 +147,59 @@ app.get("/livez", (req, res) => {
   });
 });
 
+/*
+ * Exercise 4.2:
+ * Intentionally break the frontend.
+ */
 app.post("/break", (req, res) => {
-  console.log("Breaking Todo application intentionally");
+  console.log(
+    "Breaking Todo application intentionally"
+  );
 
   isHealthy = false;
 
   return res.redirect("/");
 });
 
+/*
+ * Exercise 4.5:
+ * Frontend route for marking a todo as done.
+ *
+ * HTML forms support GET and POST directly, so the frontend
+ * receives POST and then performs the required PUT request
+ * to the backend.
+ */
+app.post("/todos/:id/done", async (req, res) => {
+  try {
+    const response = await fetch(
+      `${TODO_BACKEND_URL}/todos/${req.params.id}`,
+      {
+        method: "PUT",
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Backend returned ${response.status}`
+      );
+    }
+
+    return res.redirect("/");
+  } catch (error) {
+    console.error(
+      "Failed to mark todo as done:",
+      error.message
+    );
+
+    return res
+      .status(500)
+      .send("Failed to update todo");
+  }
+});
+
+/*
+ * Main page.
+ */
 app.get("/", async (req, res) => {
   if (!isHealthy) {
     return res.status(500).send(`
@@ -194,6 +236,7 @@ app.get("/", async (req, res) => {
         <body>
           <div class="failure">
             <h1>System Failure</h1>
+
             <p>
               The Todo App is currently unhealthy.
               Please wait for recovery.
@@ -222,7 +265,8 @@ app.get("/", async (req, res) => {
             img {
               max-width: 400px;
               border-radius: 8px;
-              box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+              box-shadow:
+                0 2px 8px rgba(0, 0, 0, 0.2);
             }
 
             form {
@@ -236,15 +280,16 @@ app.get("/", async (req, res) => {
             }
 
             button {
-              padding: 12px 20px;
-              font-size: 16px;
+              padding: 10px 16px;
+              font-size: 14px;
               margin-left: 8px;
+              cursor: pointer;
             }
 
             ul {
               list-style: none;
               padding: 0;
-              max-width: 600px;
+              max-width: 700px;
               margin: 24px auto;
               text-align: left;
             }
@@ -254,6 +299,26 @@ app.get("/", async (req, res) => {
               padding: 14px;
               margin-bottom: 10px;
               border-left: 4px solid #4caf50;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            }
+
+            .todo-content.done {
+              text-decoration: line-through;
+              opacity: 0.6;
+            }
+
+            .done-label {
+              color: green;
+              font-weight: bold;
+            }
+
+            .done-button {
+              background: #1976d2;
+              color: white;
+              border: none;
+              border-radius: 4px;
             }
 
             .break-button {
@@ -261,7 +326,10 @@ app.get("/", async (req, res) => {
               color: white;
               border: none;
               border-radius: 4px;
-              cursor: pointer;
+            }
+
+            .inline-form {
+              margin: 0;
             }
           </style>
         </head>
@@ -290,8 +358,40 @@ app.get("/", async (req, res) => {
           <ul>
             ${todos
               .map(
-                (todo) =>
-                  `<li>${todo.content}</li>`
+                (todo) => `
+                  <li>
+                    <span
+                      class="todo-content ${
+                        todo.done ? "done" : ""
+                      }"
+                    >
+                      ${todo.content}
+                    </span>
+
+                    ${
+                      todo.done
+                        ? `
+                          <span class="done-label">
+                            Done
+                          </span>
+                        `
+                        : `
+                          <form
+                            action="/todos/${todo.id}/done"
+                            method="POST"
+                            class="inline-form"
+                          >
+                            <button
+                              type="submit"
+                              class="done-button"
+                            >
+                              Mark done
+                            </button>
+                          </form>
+                        `
+                    }
+                  </li>
+                `
               )
               .join("")}
           </ul>
@@ -310,36 +410,51 @@ app.get("/", async (req, res) => {
   } catch (error) {
     console.error(error);
 
-    res
+    return res
       .status(500)
       .send("Failed to load Todo App");
   }
 });
 
+/*
+ * Create a todo through the frontend.
+ */
 app.post("/todos", async (req, res) => {
   try {
-    await fetch(`${TODO_BACKEND_URL}/todos`, {
-      method: "POST",
+    const response = await fetch(
+      `${TODO_BACKEND_URL}/todos`,
+      {
+        method: "POST",
 
-      headers: {
-        "Content-Type": "application/json",
-      },
+        headers: {
+          "Content-Type": "application/json",
+        },
 
-      body: JSON.stringify({
-        content: req.body.content,
-      }),
-    });
+        body: JSON.stringify({
+          content: req.body.content,
+        }),
+      }
+    );
 
-    res.redirect("/");
+    if (!response.ok) {
+      throw new Error(
+        `Backend returned ${response.status}`
+      );
+    }
+
+    return res.redirect("/");
   } catch (error) {
     console.error(error);
 
-    res
+    return res
       .status(500)
       .send("Failed to create todo");
   }
 });
 
+/*
+ * Serve cached image.
+ */
 app.get("/image", (req, res) => {
   if (!fs.existsSync(imagePath)) {
     return res
@@ -347,9 +462,11 @@ app.get("/image", (req, res) => {
       .send("Image not found");
   }
 
-  res.sendFile(imagePath);
+  return res.sendFile(imagePath);
 });
 
 app.listen(PORT, () => {
-  console.log(`Server started in port ${PORT}`);
+  console.log(
+    `Server started in port ${PORT}`
+  );
 });

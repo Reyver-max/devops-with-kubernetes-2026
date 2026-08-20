@@ -24,6 +24,11 @@ const initializeDatabase = async () => {
     );
   `);
 
+  await pool.query(`
+    ALTER TABLE todos
+    ADD COLUMN IF NOT EXISTS done BOOLEAN NOT NULL DEFAULT FALSE;
+  `);
+
   const initialTodos = [
     "Learn Kubernetes basics",
     "Deploy application to cluster",
@@ -53,7 +58,10 @@ const initializeDatabase = async () => {
 app.get("/healthz", async (req, res) => {
   try {
     await pool.query("SELECT 1;");
-    return res.status(200).json({ status: "ok" });
+
+    return res.status(200).json({
+      status: "ok",
+    });
   } catch (error) {
     console.error(
       JSON.stringify({
@@ -70,19 +78,21 @@ app.get("/healthz", async (req, res) => {
 
 /*
  * Liveness endpoint.
- *
- * This only verifies that the backend process itself is alive.
- * A temporary database outage should not cause an endless
- * backend restart loop.
+ * Checks whether the backend process itself is alive.
  */
 app.get("/livez", (req, res) => {
-  return res.status(200).json({ status: "alive" });
+  return res.status(200).json({
+    status: "alive",
+  });
 });
 
+/*
+ * Get all todos.
+ */
 app.get("/todos", async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT id, content FROM todos ORDER BY id;"
+      "SELECT id, content, done FROM todos ORDER BY id;"
     );
 
     return res.json(result.rows);
@@ -100,6 +110,9 @@ app.get("/todos", async (req, res) => {
   }
 });
 
+/*
+ * Create a new todo.
+ */
 app.post("/todos", async (req, res) => {
   const content =
     typeof req.body.content === "string"
@@ -151,7 +164,7 @@ app.post("/todos", async (req, res) => {
       `
         INSERT INTO todos (content)
         VALUES ($1)
-        RETURNING id, content;
+        RETURNING id, content, done;
       `,
       [content]
     );
@@ -178,6 +191,64 @@ app.post("/todos", async (req, res) => {
 
     return res.status(500).json({
       error: "Failed to create todo",
+    });
+  }
+});
+
+/*
+ * Mark a todo as done.
+ *
+ * Exercise 4.5 requires:
+ * PUT /todos/<id>
+ */
+app.put("/todos/:id", async (req, res) => {
+  const id = Number(req.params.id);
+
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({
+      error: "Invalid todo id",
+    });
+  }
+
+  try {
+    const result = await pool.query(
+      `
+        UPDATE todos
+        SET done = TRUE
+        WHERE id = $1
+        RETURNING id, content, done;
+      `,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        error: "Todo not found",
+      });
+    }
+
+    const updatedTodo = result.rows[0];
+
+    console.log(
+      JSON.stringify({
+        event: "todo_marked_done",
+        todoId: updatedTodo.id,
+        content: updatedTodo.content,
+      })
+    );
+
+    return res.status(200).json(updatedTodo);
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        event: "todo_update_failed",
+        todoId: id,
+        message: error.message,
+      })
+    );
+
+    return res.status(500).json({
+      error: "Failed to update todo",
     });
   }
 });
