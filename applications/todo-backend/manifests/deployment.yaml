@@ -71,3 +71,9 @@ spec:
 
             - name: POSTGRES_DB
               value: todos
+
+            - name: NATS_URL
+              value: "nats://my-nats.nats.svc.cluster.local:4222"
+
+            - name: NATS_SUBJECT
+              value: "todo.events"

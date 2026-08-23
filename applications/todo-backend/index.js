@@ -1,10 +1,21 @@
 const express = require("express");
 const { Pool } = require("pg");
+const { connect, StringCodec } = require("nats");
 
 const app = express();
 
 const PORT = Number(process.env.PORT || 3000);
 const MAX_TODO_LENGTH = Number(process.env.MAX_TODO_LENGTH || 140);
+
+const NATS_URL =
+  process.env.NATS_URL || "nats://my-nats.nats.svc.cluster.local:4222";
+
+const NATS_SUBJECT =
+  process.env.NATS_SUBJECT || "todo.events";
+
+const sc = StringCodec();
+
+let natsConnection;
 
 app.use(express.json());
 
@@ -15,6 +26,50 @@ const pool = new Pool({
   password: process.env.POSTGRES_PASSWORD || "postgres",
   database: process.env.POSTGRES_DB || "todos",
 });
+
+/*
+ * Connect to NATS.
+ */
+const connectToNats = async () => {
+  natsConnection = await connect({
+    servers: NATS_URL,
+  });
+
+  console.log(
+    JSON.stringify({
+      event: "nats_connected",
+      server: NATS_URL,
+    })
+  );
+};
+
+/*
+ * Publish a todo status message to NATS.
+ */
+const publishTodoEvent = (message) => {
+  if (!natsConnection) {
+    console.error("Cannot publish: NATS is not connected");
+    return;
+  }
+
+  const event = {
+    user: "todo-backend",
+    message,
+  };
+
+  natsConnection.publish(
+    NATS_SUBJECT,
+    sc.encode(JSON.stringify(event))
+  );
+
+  console.log(
+    JSON.stringify({
+      event: "nats_message_published",
+      subject: NATS_SUBJECT,
+      message,
+    })
+  );
+};
 
 const initializeDatabase = async () => {
   await pool.query(`
@@ -53,7 +108,6 @@ const initializeDatabase = async () => {
 
 /*
  * Readiness endpoint.
- * The backend is ready only if PostgreSQL can answer a query.
  */
 app.get("/healthz", async (req, res) => {
   try {
@@ -78,7 +132,6 @@ app.get("/healthz", async (req, res) => {
 
 /*
  * Liveness endpoint.
- * Checks whether the backend process itself is alive.
  */
 app.get("/livez", (req, res) => {
   return res.status(200).json({
@@ -130,30 +183,12 @@ app.post("/todos", async (req, res) => {
   );
 
   if (!content) {
-    console.warn(
-      JSON.stringify({
-        event: "todo_rejected",
-        reason: "empty_content",
-        contentLength: 0,
-      })
-    );
-
     return res.status(400).json({
       error: "Todo content is required",
     });
   }
 
   if (content.length > MAX_TODO_LENGTH) {
-    console.warn(
-      JSON.stringify({
-        event: "todo_rejected",
-        reason: "content_too_long",
-        contentLength: content.length,
-        maximumLength: MAX_TODO_LENGTH,
-        content,
-      })
-    );
-
     return res.status(400).json({
       error: `Todo must be at most ${MAX_TODO_LENGTH} characters`,
     });
@@ -179,6 +214,10 @@ app.post("/todos", async (req, res) => {
       })
     );
 
+    publishTodoEvent(
+      `A todo was created: ${createdTodo.content}`
+    );
+
     return res.status(201).json(createdTodo);
   } catch (error) {
     console.error(
@@ -197,9 +236,6 @@ app.post("/todos", async (req, res) => {
 
 /*
  * Mark a todo as done.
- *
- * Exercise 4.5 requires:
- * PUT /todos/<id>
  */
 app.put("/todos/:id", async (req, res) => {
   const id = Number(req.params.id);
@@ -237,6 +273,10 @@ app.put("/todos/:id", async (req, res) => {
       })
     );
 
+    publishTodoEvent(
+      `A todo was updated: ${updatedTodo.content}`
+    );
+
     return res.status(200).json(updatedTodo);
   } catch (error) {
     console.error(
@@ -253,8 +293,14 @@ app.put("/todos/:id", async (req, res) => {
   }
 });
 
-initializeDatabase()
-  .then(() => {
+/*
+ * Initialize dependencies before starting the HTTP server.
+ */
+const start = async () => {
+  try {
+    await initializeDatabase();
+    await connectToNats();
+
     app.listen(PORT, () => {
       console.log(
         JSON.stringify({
@@ -264,14 +310,16 @@ initializeDatabase()
         })
       );
     });
-  })
-  .catch((error) => {
+  } catch (error) {
     console.error(
       JSON.stringify({
-        event: "database_initialization_failed",
+        event: "startup_failed",
         message: error.message,
       })
     );
 
     process.exit(1);
-  });
+  }
+};
+
+start();
