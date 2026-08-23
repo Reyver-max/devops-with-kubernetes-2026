@@ -3,30 +3,22 @@ name: Release Todo application
 on:
   push:
     branches:
-      - "**"
+      - main
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 env:
   PROJECT_ID: ${{ secrets.GKE_PROJECT }}
-
-  GKE_CLUSTER: dwk-cluster
-  GKE_ZONE: europe-north1-b
-
   REGISTRY: europe-north1-docker.pkg.dev
   REPOSITORY: dwk-images
-
   FRONTEND_IMAGE: todo-app
   BACKEND_IMAGE: todo-backend
 
-  BRANCH: ${{ github.ref_name }}
-
 jobs:
-  build-publish-deploy:
-    if: github.ref_type == 'branch'
-    name: Build, Publish and Deploy
+  build-publish-release:
+    name: Build, Push and Release
     runs-on: ubuntu-latest
     environment: GKE_PROJECT
 
@@ -50,25 +42,10 @@ jobs:
         run: |
           gcloud --quiet auth configure-docker "$REGISTRY"
 
-      - name: Get GKE credentials
-        uses: google-github-actions/get-gke-credentials@v3
-        with:
-          cluster_name: ${{ env.GKE_CLUSTER }}
-          project_id: ${{ env.PROJECT_ID }}
-          location: ${{ env.GKE_ZONE }}
-
-      - name: Select deployment namespace
-        run: |
-          if [ "$BRANCH" = "main" ]; then
-            echo "NAMESPACE=project" >> "$GITHUB_ENV"
-          else
-            echo "NAMESPACE=$BRANCH" >> "$GITHUB_ENV"
-          fi
-
       - name: Form image names
         run: |
-          echo "FRONTEND_IMAGE_TAG=${REGISTRY}/${PROJECT_ID}/${REPOSITORY}/${FRONTEND_IMAGE}:${BRANCH}-${GITHUB_SHA}" >> "$GITHUB_ENV"
-          echo "BACKEND_IMAGE_TAG=${REGISTRY}/${PROJECT_ID}/${REPOSITORY}/${BACKEND_IMAGE}:${BRANCH}-${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "FRONTEND_IMAGE_TAG=${REGISTRY}/${PROJECT_ID}/${REPOSITORY}/${FRONTEND_IMAGE}:${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "BACKEND_IMAGE_TAG=${REGISTRY}/${PROJECT_ID}/${REPOSITORY}/${BACKEND_IMAGE}:${GITHUB_SHA}" >> "$GITHUB_ENV"
 
       - name: Build frontend image
         run: |
@@ -85,52 +62,21 @@ jobs:
             applications/todo-backend
 
       - name: Publish frontend image
-        run: |
-          docker push "$FRONTEND_IMAGE_TAG"
+        run: docker push "$FRONTEND_IMAGE_TAG"
 
       - name: Publish backend image
-        run: |
-          docker push "$BACKEND_IMAGE_TAG"
+        run: docker push "$BACKEND_IMAGE_TAG"
 
       - name: Set up Kustomize
         uses: imranismail/setup-kustomize@v3
 
-      - name: Deploy
+      - name: Update image versions
         run: |
-          kubectl create namespace "$NAMESPACE" \
-            --dry-run=client \
-            -o yaml | kubectl apply -f -
+          kustomize edit set image PROJECT/TODO_APP="$FRONTEND_IMAGE_TAG"
+          kustomize edit set image PROJECT/TODO_BACKEND="$BACKEND_IMAGE_TAG"
 
-          kubectl config set-context \
-            --current \
-            --namespace="$NAMESPACE"
-
-          kustomize edit set namespace "$NAMESPACE"
-
-          kustomize edit set image \
-            PROJECT/TODO_APP="$FRONTEND_IMAGE_TAG"
-
-          kustomize edit set image \
-            PROJECT/TODO_BACKEND="$BACKEND_IMAGE_TAG"
-
-          echo "Deploying branch '$BRANCH' into namespace '$NAMESPACE'"
-
-          echo "Generated Kubernetes manifests:"
-          kustomize build .
-
-          kustomize build . | kubectl apply -f -
-
-          kubectl rollout status deployment/todo-app \
-            --namespace "$NAMESPACE" \
-            --timeout=180s
-
-          kubectl rollout status deployment/todo-backend \
-            --namespace "$NAMESPACE" \
-            --timeout=180s
-
-          kubectl get pods \
-            --namespace "$NAMESPACE"
-
-          kubectl get services \
-            --namespace "$NAMESPACE" \
-            -o wide
+      - name: Commit new image versions
+        uses: EndBug/add-and-commit@v10
+        with:
+          add: 'kustomization.yaml'
+          message: 'Release Todo application ${{ github.sha }}'
