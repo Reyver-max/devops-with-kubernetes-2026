@@ -22,7 +22,7 @@ images:
   newTag: "4.8"
 - name: PROJECT/TODO_APP
   newName: europe-north1-docker.pkg.dev/devops-course-503807/dwk-images/todo-app
-  newTag: 49f61272e19a4556b4044993f849fbdf990820e9
+  newTag: 3aea3700cce1e97aa1934a3b27b4f950c1524266
 - name: PROJECT/TODO_BACKEND
   newName: europe-north1-docker.pkg.dev/devops-course-503807/dwk-images/todo-backend
-  newTag: 49f61272e19a4556b4044993f849fbdf990820e9
+  newTag: 3aea3700cce1e97aa1934a3b27b4f950c1524266
