@@ -19,7 +19,7 @@ resources:
 images:
 - name: PROJECT/BROADCASTER
   newName: reyver/broadcaster
-  newTag: "4.6"
+  newTag: "4.8"
 - name: PROJECT/TODO_APP
   newName: europe-north1-docker.pkg.dev/devops-course-503807/dwk-images/todo-app
   newTag: 49f61272e19a4556b4044993f849fbdf990820e9
