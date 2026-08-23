@@ -2,27 +2,27 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - manifests/persistentvolumeclaim.yaml
-  - applications/todo-backend/manifests/backup-cronjob.yaml
-  - applications/project/manifests/configmap.yaml
-  - applications/project/manifests/service.yaml
-  - applications/project/manifests/deployment.yaml
-  - applications/project/manifests/cronjob.yaml
-  - applications/project/manifests/ingress.yaml
-  - applications/broadcaster/manifests/deployment.yaml
-  - applications/todo-backend/manifests/postgres.yaml
-  - applications/todo-backend/manifests/service.yaml
-  - applications/todo-backend/manifests/deployment.yaml
+- manifests/persistentvolumeclaim.yaml
+- applications/todo-backend/manifests/backup-cronjob.yaml
+- applications/project/manifests/configmap.yaml
+- applications/project/manifests/service.yaml
+- applications/project/manifests/deployment.yaml
+- applications/project/manifests/cronjob.yaml
+- applications/project/manifests/ingress.yaml
+- applications/broadcaster/manifests/deployment.yaml
+- applications/todo-backend/manifests/postgres.yaml
+- applications/todo-backend/manifests/service.yaml
+- applications/todo-backend/manifests/deployment.yaml
+
+
 
 images:
-  - name: PROJECT/TODO_APP
-    newName: reyver/todo-app
-    newTag: "4.5"
-
-  - name: PROJECT/TODO_BACKEND
-    newName: reyver/todo-backend
-    newTag: "4.6"
-
-  - name: PROJECT/BROADCASTER
-    newName: reyver/broadcaster
-    newTag: "4.6"
+- name: PROJECT/BROADCASTER
+  newName: reyver/broadcaster
+  newTag: "4.6"
+- name: PROJECT/TODO_APP
+  newName: europe-north1-docker.pkg.dev/devops-course-503807/dwk-images/todo-app
+  newTag: 49f61272e19a4556b4044993f849fbdf990820e9
+- name: PROJECT/TODO_BACKEND
+  newName: europe-north1-docker.pkg.dev/devops-course-503807/dwk-images/todo-backend
+  newTag: 49f61272e19a4556b4044993f849fbdf990820e9
