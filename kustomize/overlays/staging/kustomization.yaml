@@ -12,10 +12,10 @@ patches:
 images:
 - name: PROJECT/BROADCASTER
   newName: europe-north1-docker.pkg.dev/devops-course-503807/dwk-images/broadcaster
-  newTag: a1d64da298c2d01a165d19d9e54ab59dc4bb9e59
+  newTag: 6d7d8e1fa11c032f6090571e5c26b630da5c1a49
 - name: PROJECT/TODO_APP
   newName: europe-north1-docker.pkg.dev/devops-course-503807/dwk-images/todo-app
-  newTag: a1d64da298c2d01a165d19d9e54ab59dc4bb9e59
+  newTag: 6d7d8e1fa11c032f6090571e5c26b630da5c1a49
 - name: PROJECT/TODO_BACKEND
   newName: europe-north1-docker.pkg.dev/devops-course-503807/dwk-images/todo-backend
-  newTag: a1d64da298c2d01a165d19d9e54ab59dc4bb9e59
+  newTag: 6d7d8e1fa11c032f6090571e5c26b630da5c1a49
