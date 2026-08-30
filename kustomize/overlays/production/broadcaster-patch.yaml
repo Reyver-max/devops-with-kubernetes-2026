@@ -10,6 +10,4 @@ spec:
         - name: broadcaster
           env:
             - name: NATS_SUBJECT
-              value: "todo.events.staging"
-            - name: WEBHOOK_URL
-              $patch: delete
+              value: "todo.events.production"

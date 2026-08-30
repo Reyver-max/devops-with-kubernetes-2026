@@ -7,6 +7,10 @@ resources:
 - ../../base
 - backup-cronjob.yaml
 
+patches:
+- path: broadcaster-patch.yaml
+- path: backend-patch.yaml
+
 images:
 - name: PROJECT/BROADCASTER
   newName: europe-north1-docker.pkg.dev/devops-course-503807/dwk-images/broadcaster

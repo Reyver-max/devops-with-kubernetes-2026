@@ -1,15 +1,13 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: broadcaster
+  name: todo-backend
   namespace: project
 spec:
   template:
     spec:
       containers:
-        - name: broadcaster
+        - name: todo-backend
           env:
             - name: NATS_SUBJECT
-              value: "todo.events.staging"
-            - name: WEBHOOK_URL
-              $patch: delete
+              value: "todo.events.production"
