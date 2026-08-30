@@ -4,16 +4,16 @@ kind: Kustomization
 namespace: production
 
 resources:
-  - ../../base
-  - backup-cronjob.yaml
+- ../../base
+- backup-cronjob.yaml
 
 images:
-  - name: PROJECT/BROADCASTER
-    newName: europe-north1-docker.pkg.dev/devops-course-503807/dwk-images/broadcaster
-    newTag: cefdb7491d4133abdf0caaf0d0e652d5bc6943c1
-  - name: PROJECT/TODO_APP
-    newName: europe-north1-docker.pkg.dev/devops-course-503807/dwk-images/todo-app
-    newTag: cefdb7491d4133abdf0caaf0d0e652d5bc6943c1
-  - name: PROJECT/TODO_BACKEND
-    newName: europe-north1-docker.pkg.dev/devops-course-503807/dwk-images/todo-backend
-    newTag: cefdb7491d4133abdf0caaf0d0e652d5bc6943c1
+- name: PROJECT/BROADCASTER
+  newName: europe-north1-docker.pkg.dev/devops-course-503807/dwk-images/broadcaster
+  newTag: 5fc36fbc4ce4b5a78897220c962d9f3bdc5d88e5
+- name: PROJECT/TODO_APP
+  newName: europe-north1-docker.pkg.dev/devops-course-503807/dwk-images/todo-app
+  newTag: 5fc36fbc4ce4b5a78897220c962d9f3bdc5d88e5
+- name: PROJECT/TODO_BACKEND
+  newName: europe-north1-docker.pkg.dev/devops-course-503807/dwk-images/todo-backend
+  newTag: 5fc36fbc4ce4b5a78897220c962d9f3bdc5d88e5
