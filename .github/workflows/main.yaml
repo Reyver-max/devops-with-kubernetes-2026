@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - '*'
 
 permissions:
   contents: write
@@ -15,6 +17,7 @@ env:
   REPOSITORY: dwk-images
   FRONTEND_IMAGE: todo-app
   BACKEND_IMAGE: todo-backend
+  BROADCASTER_IMAGE: broadcaster
 
 jobs:
   build-publish-release:
@@ -46,6 +49,7 @@ jobs:
         run: |
           echo "FRONTEND_IMAGE_TAG=${REGISTRY}/${PROJECT_ID}/${REPOSITORY}/${FRONTEND_IMAGE}:${GITHUB_SHA}" >> "$GITHUB_ENV"
           echo "BACKEND_IMAGE_TAG=${REGISTRY}/${PROJECT_ID}/${REPOSITORY}/${BACKEND_IMAGE}:${GITHUB_SHA}" >> "$GITHUB_ENV"
+          echo "BROADCASTER_IMAGE_TAG=${REGISTRY}/${PROJECT_ID}/${REPOSITORY}/${BROADCASTER_IMAGE}:${GITHUB_SHA}" >> "$GITHUB_ENV"
 
       - name: Build frontend image
         run: |
@@ -61,22 +65,52 @@ jobs:
             --tag "$BACKEND_IMAGE_TAG" \
             applications/todo-backend
 
+      - name: Build broadcaster image
+        run: |
+          docker build \
+            --platform linux/amd64 \
+            --tag "$BROADCASTER_IMAGE_TAG" \
+            applications/broadcaster
+
       - name: Publish frontend image
         run: docker push "$FRONTEND_IMAGE_TAG"
 
       - name: Publish backend image
         run: docker push "$BACKEND_IMAGE_TAG"
 
+      - name: Publish broadcaster image
+        run: docker push "$BROADCASTER_IMAGE_TAG"
+
       - name: Set up Kustomize
         uses: imranismail/setup-kustomize@v3
 
-      - name: Update image versions
+      - name: Update staging image versions
+        if: github.ref == 'refs/heads/main'
+        working-directory: kustomize/overlays/staging
         run: |
           kustomize edit set image PROJECT/TODO_APP="$FRONTEND_IMAGE_TAG"
           kustomize edit set image PROJECT/TODO_BACKEND="$BACKEND_IMAGE_TAG"
+          kustomize edit set image PROJECT/BROADCASTER="$BROADCASTER_IMAGE_TAG"
 
-      - name: Commit new image versions
+      - name: Commit staging image versions
+        if: github.ref == 'refs/heads/main'
         uses: EndBug/add-and-commit@v10
         with:
-          add: 'kustomization.yaml'
-          message: 'Release Todo application ${{ github.sha }}'
+          add: 'kustomize/overlays/staging/kustomization.yaml'
+          message: 'Release Todo application to staging ${{ github.sha }}'
+
+      - name: Update production image versions
+        if: startsWith(github.ref, 'refs/tags/')
+        working-directory: kustomize/overlays/production
+        run: |
+          kustomize edit set image PROJECT/TODO_APP="$FRONTEND_IMAGE_TAG"
+          kustomize edit set image PROJECT/TODO_BACKEND="$BACKEND_IMAGE_TAG"
+          kustomize edit set image PROJECT/BROADCASTER="$BROADCASTER_IMAGE_TAG"
+
+      - name: Commit production image versions
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: EndBug/add-and-commit@v10
+        with:
+          add: 'kustomize/overlays/production/kustomization.yaml'
+          message: 'Release Todo application to production ${{ github.sha }}'
+          push: 'origin HEAD:main'

@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: production
+
+resources:
+  - ../../base
+  - backup-cronjob.yaml
+
+images:
+  - name: PROJECT/BROADCASTER
+    newName: europe-north1-docker.pkg.dev/devops-course-503807/dwk-images/broadcaster
+    newTag: cefdb7491d4133abdf0caaf0d0e652d5bc6943c1
+  - name: PROJECT/TODO_APP
+    newName: europe-north1-docker.pkg.dev/devops-course-503807/dwk-images/todo-app
+    newTag: cefdb7491d4133abdf0caaf0d0e652d5bc6943c1
+  - name: PROJECT/TODO_BACKEND
+    newName: europe-north1-docker.pkg.dev/devops-course-503807/dwk-images/todo-backend
+    newTag: cefdb7491d4133abdf0caaf0d0e652d5bc6943c1

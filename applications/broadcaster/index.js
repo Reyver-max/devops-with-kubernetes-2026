@@ -11,11 +11,6 @@ const WEBHOOK_URL = process.env.WEBHOOK_URL;
 const sc = StringCodec();
 
 const start = async () => {
-  if (!WEBHOOK_URL) {
-    console.error("WEBHOOK_URL environment variable is required");
-    process.exit(1);
-  }
-
   console.log(`Connecting to NATS at ${NATS_URL}`);
 
   const nc = await connect({
@@ -24,16 +19,13 @@ const start = async () => {
 
   console.log("Connected to NATS");
 
-  // Queue subscription is important:
-  // even with multiple broadcaster replicas,
-  // only one replica receives each message.
+  // Queue subscription ensures that if multiple broadcaster
+  // replicas are running, only one receives each message.
   const subscription = nc.subscribe(SUBJECT, {
     queue: "broadcasters",
   });
 
-  console.log(
-    `Listening for '${SUBJECT}' messages`
-  );
+  console.log(`Listening for '${SUBJECT}' messages`);
 
   for await (const message of subscription) {
     try {
@@ -41,26 +33,35 @@ const start = async () => {
 
       console.log("Received todo event:", data);
 
-      const payload = {
-        user: "bot",
-        message: data.message,
-      };
+      // Production:
+      // WEBHOOK_URL is defined, so forward the message.
+      //
+      // Staging:
+      // WEBHOOK_URL is not defined, so only log the message.
+      if (WEBHOOK_URL) {
+        const payload = {
+          user: "bot",
+          message: data.message,
+        };
 
-      const response = await fetch(WEBHOOK_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
+        const response = await fetch(WEBHOOK_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
 
-      if (!response.ok) {
-        throw new Error(
-          `External service returned ${response.status}`
-        );
+        if (!response.ok) {
+          throw new Error(
+            `External service returned ${response.status}`
+          );
+        }
+
+        console.log("Message forwarded successfully");
+      } else {
+        console.log("Staging mode: message logged only");
       }
-
-      console.log("Message forwarded successfully");
     } catch (error) {
       console.error(
         "Failed to process message:",
