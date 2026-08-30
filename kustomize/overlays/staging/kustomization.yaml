@@ -4,18 +4,18 @@ kind: Kustomization
 namespace: staging
 
 resources:
-  - ../../base
+- ../../base
 
 patches:
-  - path: broadcaster-patch.yaml
+- path: broadcaster-patch.yaml
 
 images:
-  - name: PROJECT/BROADCASTER
-    newName: europe-north1-docker.pkg.dev/devops-course-503807/dwk-images/broadcaster
-    newTag: cefdb7491d4133abdf0caaf0d0e652d5bc6943c1
-  - name: PROJECT/TODO_APP
-    newName: europe-north1-docker.pkg.dev/devops-course-503807/dwk-images/todo-app
-    newTag: cefdb7491d4133abdf0caaf0d0e652d5bc6943c1
-  - name: PROJECT/TODO_BACKEND
-    newName: europe-north1-docker.pkg.dev/devops-course-503807/dwk-images/todo-backend
-    newTag: cefdb7491d4133abdf0caaf0d0e652d5bc6943c1
+- name: PROJECT/BROADCASTER
+  newName: europe-north1-docker.pkg.dev/devops-course-503807/dwk-images/broadcaster
+  newTag: a1d64da298c2d01a165d19d9e54ab59dc4bb9e59
+- name: PROJECT/TODO_APP
+  newName: europe-north1-docker.pkg.dev/devops-course-503807/dwk-images/todo-app
+  newTag: a1d64da298c2d01a165d19d9e54ab59dc4bb9e59
+- name: PROJECT/TODO_BACKEND
+  newName: europe-north1-docker.pkg.dev/devops-course-503807/dwk-images/todo-backend
+  newTag: a1d64da298c2d01a165d19d9e54ab59dc4bb9e59
