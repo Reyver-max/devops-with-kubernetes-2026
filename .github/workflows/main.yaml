@@ -8,7 +8,7 @@ on:
       - '*'
 
 permissions:
-  contents: write
+  contents: read
   id-token: write
 
 env:
@@ -26,7 +26,7 @@ jobs:
     environment: GKE_PROJECT
 
     steps:
-      - name: Checkout repository
+      - name: Checkout application repository
         uses: actions/checkout@v6
 
       - name: Authenticate to Google Cloud
@@ -84,39 +84,41 @@ jobs:
       - name: Set up Kustomize
         uses: imranismail/setup-kustomize@v3
 
+      - name: Checkout configuration repository
+        uses: actions/checkout@v6
+        with:
+          repository: Reyver-max/devops-with-kubernetes-config
+          token: ${{ secrets.CONFIG_REPO_TOKEN }}
+          path: config-repo
+
       - name: Update staging image versions
         if: github.ref == 'refs/heads/main'
-        working-directory: kustomize/overlays/staging
+        working-directory: config-repo/kustomize/overlays/staging
         run: |
           kustomize edit set image PROJECT/TODO_APP="$FRONTEND_IMAGE_TAG"
           kustomize edit set image PROJECT/TODO_BACKEND="$BACKEND_IMAGE_TAG"
           kustomize edit set image PROJECT/BROADCASTER="$BROADCASTER_IMAGE_TAG"
-
-      - name: Commit staging image versions
-        if: github.ref == 'refs/heads/main'
-        uses: EndBug/add-and-commit@v10
-        with:
-          add: 'kustomize/overlays/staging/kustomization.yaml'
-          message: 'Release Todo application to staging ${{ github.sha }}'
 
       - name: Update production image versions
         if: startsWith(github.ref, 'refs/tags/')
-        working-directory: kustomize/overlays/production
+        working-directory: config-repo/kustomize/overlays/production
         run: |
           kustomize edit set image PROJECT/TODO_APP="$FRONTEND_IMAGE_TAG"
           kustomize edit set image PROJECT/TODO_BACKEND="$BACKEND_IMAGE_TAG"
           kustomize edit set image PROJECT/BROADCASTER="$BROADCASTER_IMAGE_TAG"
 
-      - name: Commit production image versions
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Commit and push configuration
+        working-directory: config-repo
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add kustomize/overlays/production/kustomization.yaml
-          git commit -m "Release Todo application to production ${GITHUB_SHA}"
-          git fetch origin main
-          git rebase origin/main
-          git push origin HEAD:main
 
+          if [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
+            git add kustomize/overlays/staging/kustomization.yaml
+            git commit -m "Release Todo application to staging ${GITHUB_SHA}"
+          else
+            git add kustomize/overlays/production/kustomization.yaml
+            git commit -m "Release Todo application to production ${GITHUB_SHA}"
+          fi
 
-
+          git push origin main
