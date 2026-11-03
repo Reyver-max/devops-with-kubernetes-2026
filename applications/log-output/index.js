@@ -8,6 +8,9 @@ const PING_PONG_HOST =
 
 const PING_PONG_PORT =
   process.env.PING_PONG_PORT || 2345;
+const GREETER_HOST = process.env.GREETER_HOST || "greeter-svc";
+const GREETER_PORT = process.env.GREETER_PORT || 80;
+
 
 const randomString = crypto.randomUUID();
 
@@ -58,6 +61,14 @@ const checkPingPong = () => {
   });
 };
 
+const getGreeting = () => new Promise((resolve, reject) => {
+  http.get(`http://${GREETER_HOST}:${GREETER_PORT}/`, (response) => {
+    let data = "";
+    response.on("data", chunk => data += chunk);
+    response.on("end", () => resolve(data.trim()));
+  }).on("error", reject);
+});
+
 const server = http.createServer(async (req, res) => {
   if (req.url === "/healthz") {
     try {
@@ -88,7 +99,13 @@ const server = http.createServer(async (req, res) => {
     "Content-Type": "text/plain",
   });
 
-  res.end(getStatus());
+  try {
+    const greeting = await getGreeting();
+    res.end(`${getStatus()}\n${greeting}`);
+  } catch (error) {
+    console.error("Greeter unavailable:", error.message);
+    res.end(`${getStatus()}\nGreeter temporarily unavailable`);
+  }
 });
 
 server.listen(PORT, () => {

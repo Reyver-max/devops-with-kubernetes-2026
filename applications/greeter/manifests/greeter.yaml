@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: greeter-v1
+  namespace: exercises
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: greeter
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: greeter
+        version: v1
+    spec:
+      containers:
+        - name: greeter
+          image: reyver/greeter:5.3
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+          env:
+            - name: GREETING
+              value: "Hello from greeter v1!"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: greeter-v2
+  namespace: exercises
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: greeter
+      version: v2
+  template:
+    metadata:
+      labels:
+        app: greeter
+        version: v2
+    spec:
+      containers:
+        - name: greeter
+          image: reyver/greeter:5.3
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+          env:
+            - name: GREETING
+              value: "Hello from greeter v2!"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: greeter-svc
+  namespace: exercises
+spec:
+  selector:
+    app: greeter
+  ports:
+    - port: 80
+      targetPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: greeter-svc-1
+  namespace: exercises
+spec:
+  selector:
+    app: greeter
+    version: v1
+  ports:
+    - port: 80
+      targetPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: greeter-svc-2
+  namespace: exercises
+spec:
+  selector:
+    app: greeter
+    version: v2
+  ports:
+    - port: 80
+      targetPort: 3000
