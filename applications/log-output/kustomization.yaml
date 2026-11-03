@@ -11,4 +11,4 @@ resources:
 images:
 - name: reyver/log-output
   newName: reyver/log-output
-  newTag: "5.3"
+  newTag: d1930d55c54c3773095448723136c896aed05980
